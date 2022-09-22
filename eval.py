@@ -71,7 +71,7 @@ model.eval()
 # test dataset
 test_set = Dataset(args.set, args)
 sampler = CategoriesSampler(test_set.label, args.test_episode, args.way, args.shot + args.query)
-loader = DataLoader(test_set, batch_sampler=sampler, num_workers=8, pin_memory=True)
+loader = DataLoader(test_set, batch_sampler=sampler, num_workers=2, pin_memory=True)
 tqdm_gen = tqdm.tqdm(loader)
 
 # label of query images
