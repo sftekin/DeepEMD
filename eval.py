@@ -9,9 +9,10 @@ from Models.models.Network import DeepEMD
 from Models.utils import *
 from Models.dataloader.data_utils import *
 
-DATA_DIR='your/default/dataset/dir'
-# DATA_DIR='/home/zhangchi/dataset'
-MODEL_DIR='deepemd_trained_model/miniimagenet/fcn/max_acc.pth'
+# DATA_DIR='your/default/dataset/dir'
+# MODEL_DIR='deepemd_trained_model/miniimagenet/fcn/max_acc.pth'
+DATA_DIR='/content/drive/MyDrive/repo_dumps/DeepEMD/dataset'
+MODEL_DIR='/content/drive/MyDrive/repo_dumps/DeepEMD/models/deepemd_trained_model/miniimagenet/fcn/max_acc.pth'
 
 
 
@@ -43,7 +44,7 @@ parser.add_argument('-sfc_update_step', type=float, default=100)
 parser.add_argument('-sfc_bs', type=int, default=4)
 # others
 parser.add_argument('-test_episode', type=int, default=5000)
-parser.add_argument('-gpu', default='0,1')
+parser.add_argument('-gpu', default='0')
 parser.add_argument('-data_dir', type=str, default=DATA_DIR)
 parser.add_argument('-model_dir', type=str, default=MODEL_DIR)
 parser.add_argument('-seed', type=int, default=1)
