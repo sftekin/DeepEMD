@@ -3,3 +3,4 @@ poetry:
 	pip install qpth
 	code --install-extension ms-python.python
 	rm ~/.vscode-server/bin/*/vscode-remote-lock*
+	code --install-extension equinusocio.vsc-community-material-theme
