@@ -18,6 +18,15 @@ class BaseLineModel(nn.Module):
 
     def forward(self, input):
         support, query = input
+
+        # prototype
+        if self.mode == "encode":
+            pass
+        elif self.mode == "meta":
+            pass
+            # matching network
+
+            # fc
         
 
     def pairwise_distances(self, x: torch.Tensor, y: torch.Tensor, matching_fn: str) -> torch.Tensor:
@@ -59,7 +68,6 @@ class BaseLineModel(nn.Module):
             raise(ValueError('Unsupported similarity function'))
 
         return distances
-
 
 
 

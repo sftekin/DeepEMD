@@ -99,9 +99,9 @@ valset = Dataset(args.set, args)
 val_sampler = CategoriesSampler(valset.label, args.val_episode, args.way, args.shot + args.query)
 val_loader = DataLoader(dataset=valset, batch_sampler=val_sampler, num_workers=2, pin_memory=True)
 
-if not args.random_val_task:
-    print ('fix val set for all epochs')
-    val_loader=[x for x in val_loader]
+# if not args.random_val_task:
+#     print ('fix val set for all epochs')
+#     val_loader=[x for x in val_loader]
 print('save all checkpoint models:', (args.save_all is True))
 
 #label for query set, always in the same pattern
