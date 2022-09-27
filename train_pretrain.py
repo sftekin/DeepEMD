@@ -60,7 +60,7 @@ if args.extra_dir is not None:
     args.save_path=osp.join(args.save_path,args.extra_dir)
 ensure_path(args.save_path)
 
-args.dir = 'pretrained_model/miniimagenet/max_acc.pth'
+args.dir = '/content/drive/MyDrive/repo_dumps/DeepEMD/models/deepemd_pretrain_model/miniimagenet/resnet12/max_acc.pth'
 
 Dataset=set_up_datasets(args)
 trainset = Dataset('train', args)

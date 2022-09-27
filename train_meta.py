@@ -10,9 +10,9 @@ from torch.utils.tensorboard import SummaryWriter
 import tqdm
 import time
 
-PRETRAIN_DIR='deepemd_pretrain_model/'
+PRETRAIN_DIR='/content/drive/MyDrive/repo_dumps/DeepEMD/models/deepemd_pretrain_model/'
 # DATA_DIR='/home/zhangchi/dataset'
-DATA_DIR='your/default/dataset/dir'
+DATA_DIR='/content/drive/MyDrive/repo_dumps/DeepEMD/dataset'
 
 parser = argparse.ArgumentParser()
 #about dataset and training
@@ -58,7 +58,7 @@ parser.add_argument('-sfc_update_step', type=float, default=100, help='number of
 parser.add_argument('-sfc_bs', type=int, default=4, help='batch size for finetune sfc')
 
 # OTHERS
-parser.add_argument('-gpu', default='0,1')
+parser.add_argument('-gpu', default='0')
 parser.add_argument('-extra_dir', type=str,default=None,help='extra information that is added to checkpoint dir, e.g. hyperparameters')
 parser.add_argument('-seed', type=int, default=1)
 
@@ -93,11 +93,11 @@ ensure_path(args.save_path)
 
 trainset = Dataset('train', args)
 train_sampler = CategoriesSampler(trainset.label, args.val_frequency*args.bs, args.way, args.shot + args.query)
-train_loader = DataLoader(dataset=trainset, batch_sampler=train_sampler, num_workers=8, pin_memory=True)
+train_loader = DataLoader(dataset=trainset, batch_sampler=train_sampler, num_workers=2, pin_memory=True)
 
 valset = Dataset(args.set, args)
 val_sampler = CategoriesSampler(valset.label, args.val_episode, args.way, args.shot + args.query)
-val_loader = DataLoader(dataset=valset, batch_sampler=val_sampler, num_workers=8, pin_memory=True)
+val_loader = DataLoader(dataset=valset, batch_sampler=val_sampler, num_workers=2, pin_memory=True)
 
 if not args.random_val_task:
     print ('fix val set for all epochs')
