@@ -67,13 +67,16 @@ class Prototype(BaseLineModel):
     def forward(self, input, **kwargs):
         if self.mode == "encode":
             return nn.Flatten()(self.encoder(input))
-        else:
+        elif self.mode == "meta":
             support, queries = input
             k, n = kwargs["k"], kwargs["n"]
             prototypes = self.compute_prototypes(support, k, n)
 
             distances = self.pairwise_distances(queries, prototypes, distance="l2")
-            
+            logits = distances.softmax(dim=1)
+            return logits
+        else:
+            raise ValueError('Unknown mode')
 
 
     @staticmethod
@@ -95,4 +98,13 @@ class Prototype(BaseLineModel):
         return class_prototypes
 
 
+class Matching(BaseLineModel):
+    def __init__(self, args, mode="meta") -> None:
+        super().__init__(args, mode)
+    
+    def forward(self, input, **kwargs):
+        if self.mode == "encode":
+            return nn.Flatten()(self.encoder(input))
+        elif self.mode == "meta":
+            pass
 
