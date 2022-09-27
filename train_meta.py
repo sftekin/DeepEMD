@@ -10,9 +10,8 @@ from torch.utils.tensorboard import SummaryWriter
 import tqdm
 import time
 
-PRETRAIN_DIR='/content/drive/MyDrive/repo_dumps/DeepEMD/models/deepemd_pretrain_model/'
-# DATA_DIR='/home/zhangchi/dataset'
-DATA_DIR='/content/drive/MyDrive/repo_dumps/DeepEMD/dataset'
+PRETRAIN_DIR='/content/DeepEMD/outputs/deepemd_pretrain_model'
+DATA_DIR='/content/DeepEMD/datasets'
 
 parser = argparse.ArgumentParser()
 #about dataset and training
