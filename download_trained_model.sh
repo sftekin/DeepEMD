@@ -7,3 +7,5 @@ wget --load-cookies /tmp/cookies.txt "https://docs.google.com/uc?export=download
 
 tar -xvf deepemd_trained_model.tar deepemd_trained_model/
 
+mv deepemd_trained_model outputs/deepemd_trained_model
+rm deepemd_trained_model.tar
