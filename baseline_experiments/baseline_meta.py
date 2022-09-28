@@ -1,3 +1,6 @@
+import sys
+sys.path.append(".")
+
 import argparse
 import torch.nn.functional as F
 from torch.utils.data import DataLoader
