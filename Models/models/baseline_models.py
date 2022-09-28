@@ -69,13 +69,13 @@ class Prototype(BaseLineModel):
         super().__init__(args, mode)
     
     def forward(self, input):
-        if self.mode == "encode":
+        if self.mode == "encoder":
             return nn.Flatten()(self.encoder(input))
         elif self.mode == "meta":
             support, queries = input
             prototypes = self.compute_prototypes(support)
 
-            distances = self.pairwise_distances(queries, prototypes, distance="l2")
+            distances = self.pairwise_distances(queries, prototypes, matching_fn="l2")
             logits = distances.softmax(dim=1)
             return logits
         else:
@@ -99,7 +99,7 @@ class Matching(BaseLineModel):
         elif self.mode == "meta":
             support, queries = input
 
-            distances = self.pairwise_distances(queries, queries, distance="cosine")
+            distances = self.pairwise_distances(queries, queries, matching_fn="cosine")
             attention = (-distances).softmax(dim=1)
 
             y_pred = self.matching_net_predictions(attention)

@@ -42,7 +42,194 @@ def main(args):
     model = model.cuda()
     model.eval()
 
-    print()
+    args.save_path = '%s/%s/%dshot-%dway/'%(args.dataset,args.deepemd,args.shot,args.way)
+
+    args.save_path=osp.join('checkpoint',args.save_path)
+    if args.extra_dir is not None:
+        args.save_path=osp.join(args.save_path,args.extra_dir)
+    ensure_path(args.save_path)
+
+
+    trainset = Dataset('train', args)
+    train_sampler = CategoriesSampler(trainset.label, args.val_frequency*args.bs, args.way, args.shot + args.query)
+    train_loader = DataLoader(dataset=trainset, batch_sampler=train_sampler, num_workers=2, pin_memory=True)
+
+    valset = Dataset(args.set, args)
+    val_sampler = CategoriesSampler(valset.label, args.val_episode, args.way, args.shot + args.query)
+    val_loader = DataLoader(dataset=valset, batch_sampler=val_sampler, num_workers=2, pin_memory=True)
+
+    # if not args.random_val_task:
+    #     print ('fix val set for all epochs')
+    #     val_loader=[x for x in val_loader]
+    print('save all checkpoint models:', (args.save_all is True))
+
+    #label for query set, always in the same pattern
+    label = torch.arange(args.way, dtype=torch.int8).repeat(args.query)#012340123401234...
+    label = label.type(torch.LongTensor)
+    label = label.cuda()
+
+    optimizer = torch.optim.SGD([{'params': model.parameters(),'lr':args.lr}], momentum=0.9, nesterov=True, weight_decay=0.0005)
+    lr_scheduler = torch.optim.lr_scheduler.StepLR(optimizer, step_size=args.step_size, gamma=args.gamma)
+
+    def save_model(name):
+        torch.save(dict(params=model.state_dict()), osp.join(args.save_path, name + '.pth'))
+
+    trlog = {}
+    trlog['args'] = vars(args)
+    trlog['train_loss'] = []
+    trlog['val_loss'] = []
+    trlog['train_acc'] = []
+    trlog['val_acc'] = []
+    trlog['max_acc'] = 0.0
+    trlog['max_acc_epoch'] = 0
+
+    global_count = 0
+    writer = SummaryWriter(osp.join(args.save_path,'tf'))
+
+    result_list=[args.save_path]
+    for epoch in range(1, args.max_epoch + 1):
+        print (args.save_path)
+        start_time=time.time()
+
+        tl = Averager()
+        ta = Averager()
+
+
+        tqdm_gen = tqdm.tqdm(train_loader)
+        model.train()
+        optimizer.zero_grad()
+        for i, batch in enumerate(tqdm_gen, 1):
+
+            global_count = global_count + 1
+            data, _ = [_.cuda() for _ in batch]
+
+            k = args.way * args.shot
+            model.module.mode = 'encoder'
+            data = model(data)
+            data_shot, data_query = data[:k], data[k:]
+            model.module.mode = 'meta'
+            if args.shot > 1:
+                data_shot = model.module.get_sfc(data_shot)
+            logits = model((data_shot.unsqueeze(0).repeat(num_gpu, 1, 1, 1, 1), data_query))
+            loss = F.cross_entropy(logits, label)
+
+            acc = count_acc(logits, label)
+            writer.add_scalar('data/loss', float(loss), global_count)
+            writer.add_scalar('data/acc', float(acc), global_count)
+
+            total_loss = loss/args.bs#batch of tasks, done by accumulate gradients
+            writer.add_scalar('data/total_loss', float(total_loss), global_count)
+            tqdm_gen.set_description('epo {}, total loss={:.4f} acc={:.4f}'
+                .format(epoch, total_loss.item(), acc))
+            tl.add(total_loss.item())
+            ta.add(acc)
+            total_loss.backward()
+
+            detect_grad_nan(model)
+            if i%args.bs==0: #batch of tasks, done by accumulate gradients
+                optimizer.step()
+                optimizer.zero_grad()
+
+
+        tl = tl.item()
+        ta = ta.item()
+        vl = Averager()
+        va = Averager()
+
+        #validation
+        model.eval()
+        with torch.no_grad():
+            tqdm_gen = tqdm.tqdm(val_loader)
+            for i, batch in enumerate(tqdm_gen, 1):
+                data, _ = [_.cuda() for _ in batch]
+                k = args.way * args.shot
+                model.module.mode = 'encoder'
+                data = model(data)
+                data_shot, data_query = data[:k], data[k:]
+                model.module.mode = 'meta'
+                if args.shot > 1:
+                    data_shot = model.module.get_sfc(data_shot)
+                logits = model((data_shot.unsqueeze(0).repeat(num_gpu, 1, 1, 1, 1), data_query))
+
+                loss = F.cross_entropy(logits, label)
+                acc = count_acc(logits, label)
+                vl.add(loss.item())
+                va.add(acc)
+
+        vl = vl.item()
+        va = va.item()
+        writer.add_scalar('data/val_loss', float(vl), epoch)
+        writer.add_scalar('data/val_acc', float(va), epoch)
+        tqdm_gen.set_description('epo {}, val, loss={:.4f} acc={:.4f}'.format(epoch, vl, va))
+
+        print ('val acc:%.4f'%va)
+        if va >= trlog['max_acc']:
+            print ('*********A better model is found*********')
+            trlog['max_acc'] = va
+            trlog['max_acc_epoch'] = epoch
+            save_model('max_acc')
+
+        trlog['train_loss'].append(tl)
+        trlog['train_acc'].append(ta)
+        trlog['val_loss'].append(vl)
+        trlog['val_acc'].append(va)
+
+        result_list.append('epoch:%03d,training_loss:%.5f,training_acc:%.5f,val_loss:%.5f,val_acc:%.5f'%(epoch,tl,ta,vl,va))
+
+        torch.save(trlog, osp.join(args.save_path, 'trlog'))
+        if args.save_all:
+            save_model('epoch-%d'%epoch)
+            torch.save(optimizer.state_dict(), osp.join(args.save_path,'optimizer_latest.pth'))
+        print('best epoch {}, best val acc={:.4f}'.format(trlog['max_acc_epoch'], trlog['max_acc']))
+        print ('This epoch takes %d seconds'%(time.time()-start_time),'\nstill need %.2f hour to finish'%((time.time()-start_time)*(args.max_epoch-epoch)/3600))
+        lr_scheduler.step()
+
+    writer.close()
+
+
+
+    # Test Phase
+    trlog = torch.load(osp.join(args.save_path, 'trlog'))
+    test_set = Dataset('test', args)
+    sampler = CategoriesSampler(test_set.label, args.test_episode, args.way, args.shot + args.query)
+    loader = DataLoader(test_set, batch_sampler=sampler, num_workers=8, pin_memory=True)
+    test_acc_record = np.zeros((args.test_episode,))
+    model.load_state_dict(torch.load(osp.join(args.save_path, 'max_acc' + '.pth'))['params'])
+    model.eval()
+
+    ave_acc = Averager()
+    label = torch.arange(args.way).repeat(args.query)
+    if torch.cuda.is_available():
+        label = label.type(torch.cuda.LongTensor)
+    else:
+        label = label.type(torch.LongTensor)
+
+    tqdm_gen = tqdm.tqdm(loader)
+    with torch.no_grad():
+        for i, batch in enumerate(tqdm_gen, 1):
+            data, _ = [_.cuda() for _ in batch]
+            k = args.way * args.shot
+            model.module.mode = 'encoder'
+            data = model(data)
+            data_shot, data_query = data[:k], data[k:]
+            model.module.mode = 'meta'
+            if args.shot > 1:
+                data_shot = model.module.get_sfc(data_shot)
+            logits = model((data_shot.unsqueeze(0).repeat(num_gpu, 1, 1, 1, 1), data_query))
+            acc = count_acc(logits, label)* 100
+            ave_acc.add(acc)
+            test_acc_record[i-1] = acc
+            tqdm_gen.set_description('batch {}: {:.2f}({:.2f})'.format(i, ave_acc.item(), acc))
+
+
+    m, pm = compute_confidence_interval(test_acc_record)
+
+    result_list.append('Val Best Epoch {},\nbest val Acc {:.4f}, \nbest est Acc {:.4f}'.format(trlog['max_acc_epoch'], trlog['max_acc'], ave_acc.item()))
+    result_list.append('Test Acc {:.4f} + {:.4f}'.format(m, pm))
+    print (result_list[-2])
+    print (result_list[-1])
+    save_list_to_txt(os.path.join(args.save_path,'results.txt'),result_list)
+
 
 
 
@@ -50,7 +237,7 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser()
 
     # My additional arguments
-    parser.add_argument('-model_name', type=str, default="Prototype", choices=['DeepEMD', 'Prototype', 'Matching'])
+    parser.add_argument('-model_name', type=str, default="DeepEMD", choices=['DeepEMD', 'Prototype', 'Matching'])
 
     #about dataset and training
     parser.add_argument('-dataset', type=str, default='miniimagenet', choices=['miniimagenet', 'cub','tieredimagenet','fc100','tieredimagenet_yao','cifar_fs'])
