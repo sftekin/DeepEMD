@@ -94,12 +94,12 @@ class Matching(BaseLineModel):
         super().__init__(args, mode)
     
     def forward(self, input, **kwargs):
-        if self.mode == "encode":
+        if self.mode == "encoder":
             return nn.Flatten()(self.encoder(input))
         elif self.mode == "meta":
             support, queries = input
 
-            distances = self.pairwise_distances(queries, queries, matching_fn="cosine")
+            distances = self.pairwise_distances(queries, support, matching_fn="cosine")
             attention = (-distances).softmax(dim=1)
 
             y_pred = self.matching_net_predictions(attention)
@@ -131,7 +131,7 @@ class Matching(BaseLineModel):
         y = self.create_nshot_task_label(self.k, self.n).unsqueeze(-1)
         y_onehot = y_onehot.scatter(1, y, 1)
 
-        y_pred = torch.mm(attention, y_onehot.cuda().double())
+        y_pred = torch.mm(attention, y_onehot.cuda().float())
 
         return y_pred
 

@@ -110,7 +110,8 @@ def main(args):
             model.module.mode = 'meta'
             if args.shot > 1:
                 data_shot = model.module.get_sfc(data_shot)
-            logits = model((data_shot.unsqueeze(0).repeat(num_gpu, 1, 1, 1, 1), data_query))
+            # logits = model((data_shot.unsqueeze(0).repeat(num_gpu, 1, 1, 1, 1), data_query))
+            logits = model((data_shot, data_query))
             loss = F.cross_entropy(logits, label)
 
             acc = count_acc(logits, label)
@@ -149,7 +150,8 @@ def main(args):
                 model.module.mode = 'meta'
                 if args.shot > 1:
                     data_shot = model.module.get_sfc(data_shot)
-                logits = model((data_shot.unsqueeze(0).repeat(num_gpu, 1, 1, 1, 1), data_query))
+                # logits = model((data_shot.unsqueeze(0).repeat(num_gpu, 1, 1, 1, 1), data_query))
+                logits = model((data_shot, data_query))
 
                 loss = F.cross_entropy(logits, label)
                 acc = count_acc(logits, label)
@@ -237,7 +239,7 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser()
 
     # My additional arguments
-    parser.add_argument('-model_name', type=str, default="Prototype", choices=['DeepEMD', 'Prototype', 'Matching'])
+    parser.add_argument('-model_name', type=str, default="Matching", choices=['DeepEMD', 'Prototype', 'Matching'])
 
     #about dataset and training
     parser.add_argument('-dataset', type=str, default='miniimagenet', choices=['miniimagenet', 'cub','tieredimagenet','fc100','tieredimagenet_yao','cifar_fs'])
