@@ -154,3 +154,17 @@ class Matching(BaseLineModel):
         y = torch.arange(0, k, 1 / q).long()
         return y
 
+
+class Finetune(BaseLineModel):
+    def __init__(self, args, mode="meta") -> None:
+        super().__init__(args, mode)
+
+        self.fine_tuning_steps = args.fine_tuning_steps
+        self.fine_tuning_lr = args.fine_tuning_lr
+
+    def forward(self, input):
+        if self.mode == "encoder":
+            return nn.Flatten()(self.encoder(input))
+        elif self.mode == "meta":
+            support, queries = input
+            
