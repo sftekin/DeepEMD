@@ -76,7 +76,7 @@ class Prototype(BaseLineModel):
             prototypes = self.compute_prototypes(support)
 
             distances = self.pairwise_distances(queries, prototypes, matching_fn="l2")
-            logits = distances.softmax(dim=1)
+            logits = (-distances).softmax(dim=1)
             return logits
         else:
             raise ValueError('Unknown mode')
