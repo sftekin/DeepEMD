@@ -58,7 +58,7 @@ class MiniImageNet(Dataset):
     def __getitem__(self, i):
         path, label = self.data[i], self.label[i]
         image = self.transform(Image.open(path).convert('RGB'))
-        return image, label
+        return path, image, label
 
 
 if __name__ == '__main__':
