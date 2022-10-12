@@ -42,11 +42,12 @@ def main(args):
     model = model.cuda()
     model.eval()
 
-    args.save_path = '%s/%s/%dshot-%dway/'%(args.dataset,args.deepemd,args.shot,args.way)
+    model_save_name = f"{args.model_name}" if args.model_name != "DeepEMD" else f"{args.model_name}{args.deepemd}"
+    args.save_path = '%s/%s/%dshot-%dway/'%(args.dataset, model_save_name, args.shot, args.way)
 
-    args.save_path=osp.join('checkpoint',args.save_path)
+    args.save_path = osp.join('checkpoint',args.save_path)
     if args.extra_dir is not None:
-        args.save_path=osp.join(args.save_path,args.extra_dir)
+        args.save_path = osp.join(args.save_path,args.extra_dir)
     ensure_path(args.save_path)
 
 
@@ -99,6 +100,8 @@ def main(args):
         model.train()
         optimizer.zero_grad()
         for i, batch in enumerate(tqdm_gen, 1):
+
+            path_batch, data_batch, label_batch = batch
 
             global_count = global_count + 1
             data, _ = [_.cuda() for _ in batch]
