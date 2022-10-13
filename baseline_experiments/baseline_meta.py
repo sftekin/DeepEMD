@@ -15,8 +15,9 @@ import tqdm
 import time
 
 
-PRETRAIN_DIR='/content/DeepEMD/outputs/deepemd_pretrain_model'
-DATA_DIR='/content/DeepEMD/datasets'
+PRETRAIN_DIR = '/content/DeepEMD/outputs/deepemd_pretrain_model'
+DATA_DIR = '/content/DeepEMD/datasets'
+SAVE_DIR = "/content/drive/MyDrive/repo_dumps/DeepEMD/checkpoints"
 
 model_dispatcher = {
     "DeepEMD": DeepEMD,
@@ -42,12 +43,11 @@ def main(args):
     model = model.cuda()
     model.eval()
 
+    # create save_path for the checkpoints
     model_save_name = f"{args.model_name}" if args.model_name != "DeepEMD" else f"{args.model_name}{args.deepemd}"
-    args.save_path = '%s/%s/%dshot-%dway/'%(args.dataset, model_save_name, args.shot, args.way)
-
-    args.save_path = osp.join('checkpoint',args.save_path)
+    args.save_path = os.path.join(SAVE_DIR, args.dataset, model_save_name, args.shot, args.way)
     if args.extra_dir is not None:
-        args.save_path = osp.join(args.save_path,args.extra_dir)
+        args.save_path = osp.join(args.save_path, args.extra_dir)
     ensure_path(args.save_path)
 
 
@@ -146,7 +146,9 @@ def main(args):
         with torch.no_grad():
             tqdm_gen = tqdm.tqdm(val_loader)
             for i, batch in enumerate(tqdm_gen, 1):
-                data, _ = [_.cuda() for _ in batch]
+                path_batch, data_batch, label_batch = batch
+                data, label_batch = data_batch.cuda(), label_batch.cuda()
+                # data, _ = [_.cuda() for _ in batch]
                 k = args.way * args.shot
                 model.module.mode = 'encoder'
                 data = model(data)
@@ -251,12 +253,12 @@ if __name__ == "__main__":
     parser.add_argument('-set',type=str,default='val',choices=['test','val'],help='the set used for validation')# set used for validation
     #about training
     parser.add_argument('-bs', type=int, default=1,help='batch size of tasks')
-    parser.add_argument('-max_epoch', type=int, default=100)
+    parser.add_argument('-max_epoch', type=int, default=10)
     parser.add_argument('-lr', type=float, default=0.0005)
     parser.add_argument('-temperature', type=float, default=12.5)
     parser.add_argument('-step_size', type=int, default=10)
     parser.add_argument('-gamma', type=float, default=0.5)
-    parser.add_argument('-val_frequency',type=int,default=50)
+    parser.add_argument('-val_frequency',type=int,default=500)
     parser.add_argument('-random_val_task',action='store_true',help='random samples tasks for validation at each epoch')
     parser.add_argument('-save_all',action='store_true',help='save models on each epoch')
     #about task

@@ -6,6 +6,7 @@ from Models.dataloader.samplers import CategoriesSampler
 from Models.utils import *
 from Models.dataloader.data_utils import *
 from Models.models.Network import DeepEMD
+from Models.models.baseline_models import Prototype, Matching
 from torch.utils.tensorboard import SummaryWriter
 import tqdm
 import time
@@ -24,5 +25,6 @@ def main(args):
     pass
 
 
-def
+if __name__ == "__main__":
+    pass
 
