@@ -90,8 +90,17 @@ def main(args):
             elif args.rule == "compare":
                 acc_2, logits_2 = model_step(data, label, comparison_model, args, num_gpu)
                 pred2 = torch.argmax(logits, dim=1)
+                if acc <= acc_2:
+                    negative_data += path_batch
+                    negative_label += label_batch.cpu().numpy().tolist()
             else:
-                ind = pred == label
+                support_path = path_batch[:5]
+                query_path = path_batch[5:]
+                query_path = np.array(query_path)[pred == label]
+                label_ind = np.array(label_batch[5:])[pred == label]
+                negative_data.append(support_path + query_path)
+
+                
                 
 
             ave_acc.add(acc)
@@ -99,11 +108,13 @@ def main(args):
             m, pm = compute_confidence_interval(test_acc_record[:i])
             tqdm_gen.set_description('batch {}: This episode:{:.2f}  average: {:.4f}+{:.4f}'.format(i, acc, m, pm))
 
-        negative_paths = os.path.join(f"{args.rule}", f"{args.model_name}")
-        with open(os.path.join(negative_paths, "negative_data.pkl"), "wb") as f:
+        dir_path = os.path.dirname(os.path.abspath(__file__))
+        negative_path = os.path.join(dir_path, f"{args.rule}", f"{args.model_name}")
+        ensure_path(negative_path)
+        with open(os.path.join(negative_path, "negative_data.pkl"), "wb") as f:
             pkl.dump(negative_data, f)
 
-        with open(os.path.join(negative_paths, "negative_label.pkl"), "wb") as f:
+        with open(os.path.join(negative_path, "negative_label.pkl"), "wb") as f:
             pkl.dump(negative_label, f)
 
         m, pm = compute_confidence_interval(test_acc_record)
