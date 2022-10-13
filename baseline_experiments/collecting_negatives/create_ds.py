@@ -11,6 +11,10 @@ from Models.models.baseline_models import Prototype, Matching
 from torch.utils.tensorboard import SummaryWriter
 import tqdm
 import time
+import pickle as pkl
+import os
+from Models.dataloader.data_utils import *
+
 
 
 DATA_DIR='/content/DeepEMD/datasets'
@@ -22,7 +26,7 @@ model_dispatcher = {
 }
 
 model_dir_dispatcher = {
-    "DeepEMD": "deepemd_trained_model/miniimagenet/fcn/max_acc.pth",
+    "DeepEMD": "/content/DeepEMD/outputs/deepemd_trained_model/miniimagenet/fcn/max_acc.pth",
     "Matching": "/content/drive/MyDrive/repo_dumps/DeepEMD/checkpoints/miniimagenet/Matching/1shot-5way/max_acc.pth",
     "Prototype": "/content/drive/MyDrive/repo_dumps/DeepEMD/checkpoints/miniimagenet/Prototype/1shot-5way/max_acc.pth"
 }
@@ -79,21 +83,28 @@ def main(args):
             acc, logits = model_step(data, label, model, args, num_gpu)
             pred = torch.argmax(logits, dim=1)
 
-            # if args.rule == "thresholding":
-            #     if acc <= args.threshold:
-            #         negative_data += path_batch
-            #         negative_label += label_batch.cpu().numpy().tolist()
-            # elif args.rule == "compare":
-            #     acc_2, logits_2 = model_step(data, label, comparison_model, args, num_gpu)
-            #     pred2 = torch.argmax(logits, dim=1)
-            # else:
-            #     ind = pred == label
+            if args.rule == "threshold":
+                if acc <= args.threshold:
+                    negative_data += path_batch
+                    negative_label += label_batch.cpu().numpy().tolist()
+            elif args.rule == "compare":
+                acc_2, logits_2 = model_step(data, label, comparison_model, args, num_gpu)
+                pred2 = torch.argmax(logits, dim=1)
+            else:
+                ind = pred == label
                 
 
             ave_acc.add(acc)
             test_acc_record[i - 1] = acc
             m, pm = compute_confidence_interval(test_acc_record[:i])
             tqdm_gen.set_description('batch {}: This episode:{:.2f}  average: {:.4f}+{:.4f}'.format(i, acc, m, pm))
+
+        negative_paths = os.path.join(f"{args.rule}", f"{args.model_name}")
+        with open(os.path.join(negative_paths, "negative_data.pkl"), "wb") as f:
+            pkl.dump(negative_data, f)
+
+        with open(os.path.join(negative_paths, "negative_label.pkl"), "wb") as f:
+            pkl.dump(negative_label, f)
 
         m, pm = compute_confidence_interval(test_acc_record)
         result_list = ['test Acc {:.4f}'.format(ave_acc.item())]
@@ -119,10 +130,10 @@ def model_step(data, label, model, args, num_gpu):
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
     # set the rule
+    parser.add_argument('-model_name', type=str, default="DeepEMD", choices=['DeepEMD', 'Prototype', 'Matching'])
     parser.add_argument("-rule", type=str, default="threshold", choices=["threshold", "compare", "fail"])
     parser.add_argument("-threshold", type=float, default=0.63)
     # about task
-    parser.add_argument('-model_name', type=str, default="Matching", choices=['DeepEMD', 'Prototype', 'Matching'])
     parser.add_argument('-way', type=int, default=5)
     parser.add_argument('-shot', type=int, default=1)
     parser.add_argument('-query', type=int, default=15)  # number of query image per class
