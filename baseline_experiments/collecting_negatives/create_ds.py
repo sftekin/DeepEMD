@@ -23,8 +23,8 @@ model_dispatcher = {
 
 model_dir_dispatcher = {
     "DeepEMD": "deepemd_trained_model/miniimagenet/fcn/max_acc.pth",
-    "Matching": "/content/drive/MyDrive/repo_dumps/DeepEMD/checkpoints/Matching/1shot-5way/max_acc.pth",
-    "Prototype": "/content/drive/MyDrive/repo_dumps/DeepEMD/checkpoints/Prototype/1shot-5way/max_acc.pth"
+    "Matching": "/content/drive/MyDrive/repo_dumps/DeepEMD/checkpoints/miniimagenet/Matching/1shot-5way/max_acc.pth",
+    "Prototype": "/content/drive/MyDrive/repo_dumps/DeepEMD/checkpoints/miniimagenet/Prototype/1shot-5way/max_acc.pth"
 }
 
 def main(args):
@@ -79,15 +79,15 @@ def main(args):
             acc, logits = model_step(data, label, model, args, num_gpu)
             pred = torch.argmax(logits, dim=1)
 
-            if args.rule == "thresholding":
-                if acc <= args.threshold:
-                    negative_data += path_batch
-                    negative_label += label_batch.cpu().numpy().tolist()
-            elif args.rule == "compare":
-                acc_2, logits_2 = model_step(data, label, comparison_model, args, num_gpu)
-                pred2 = torch.argmax(logits, dim=1)
-            else:
-                ind = pred == label
+            # if args.rule == "thresholding":
+            #     if acc <= args.threshold:
+            #         negative_data += path_batch
+            #         negative_label += label_batch.cpu().numpy().tolist()
+            # elif args.rule == "compare":
+            #     acc_2, logits_2 = model_step(data, label, comparison_model, args, num_gpu)
+            #     pred2 = torch.argmax(logits, dim=1)
+            # else:
+            #     ind = pred == label
                 
 
             ave_acc.add(acc)
@@ -110,7 +110,8 @@ def model_step(data, label, model, args, num_gpu):
     model.module.mode = 'meta'
     if args.shot > 1:
         data_shot = model.module.get_sfc(data_shot)
-    logits = model((data_shot.unsqueeze(0).repeat(num_gpu, 1, 1, 1, 1), data_query))
+    # logits = model((data_shot.unsqueeze(0).repeat(num_gpu, 1, 1, 1, 1), data_query))
+    logits = model((data_shot, data_query))
     acc = count_acc(logits, label) * 100
     return acc, logits
 
