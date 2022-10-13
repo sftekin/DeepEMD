@@ -215,7 +215,9 @@ def main(args):
     tqdm_gen = tqdm.tqdm(loader)
     with torch.no_grad():
         for i, batch in enumerate(tqdm_gen, 1):
-            data, _ = [_.cuda() for _ in batch]
+            path_batch, data_batch, label_batch = batch
+            data, label_batch = data_batch.cuda(), label_batch.cuda()
+            # data, _ = [_.cuda() for _ in batch]
             k = args.way * args.shot
             model.module.mode = 'encoder'
             data = model(data)

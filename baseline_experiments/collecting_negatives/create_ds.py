@@ -76,7 +76,19 @@ def main(args):
             data, label_batch = data_batch.cuda(), label_batch.cuda()
             # data, _ = [_.cuda() for _ in batch]
 
-            acc = model_step(data, label, model, args, num_gpu)
+            acc, logits = model_step(data, label, model, args, num_gpu)
+            pred = torch.argmax(logits, dim=1)
+
+            if args.rule == "thresholding":
+                if acc <= args.threshold:
+                    negative_data += path_batch
+                    negative_label += label_batch.cpu().numpy().tolist()
+            elif args.rule == "compare":
+                acc_2, logits_2 = model_step(data, label, comparison_model, args, num_gpu)
+                pred2 = torch.argmax(logits, dim=1)
+            else:
+                ind = pred == label
+                
 
             ave_acc.add(acc)
             test_acc_record[i - 1] = acc
@@ -100,7 +112,7 @@ def model_step(data, label, model, args, num_gpu):
         data_shot = model.module.get_sfc(data_shot)
     logits = model((data_shot.unsqueeze(0).repeat(num_gpu, 1, 1, 1, 1), data_query))
     acc = count_acc(logits, label) * 100
-    return acc
+    return acc, logits
 
 
 if __name__ == "__main__":
