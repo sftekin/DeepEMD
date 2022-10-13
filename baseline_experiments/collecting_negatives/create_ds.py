@@ -14,7 +14,7 @@ import time
 import pickle as pkl
 import os
 from Models.dataloader.data_utils import *
-
+import pandas as pd
 
 
 DATA_DIR='/content/DeepEMD/datasets'
@@ -99,6 +99,7 @@ def main(args):
                 query_path = np.array(query_path)[pred == label]
                 label_ind = np.array(label_batch[5:])[pred == label]
                 negative_data.append(support_path + query_path)
+                negative_label.append(label_batch[:5] + label_ind)
 
                 
                 
@@ -111,11 +112,23 @@ def main(args):
         dir_path = os.path.dirname(os.path.abspath(__file__))
         negative_path = os.path.join(dir_path, f"{args.rule}", f"{args.model_name}")
         ensure_path(negative_path)
-        with open(os.path.join(negative_path, "negative_data.pkl"), "wb") as f:
-            pkl.dump(negative_data, f)
 
-        with open(os.path.join(negative_path, "negative_label.pkl"), "wb") as f:
-            pkl.dump(negative_label, f)
+        batch_inds = []
+        batch_count = 0
+        neg_dir = {"data_path": [], "label": []}
+        for i in range(len(negative_data)):
+            if isinstance(negative_data[i], list):
+                batch_count += 1
+                batch_inds += [batch_count for _ in range(len(negative_data[i]))]
+                neg_dir["data_path"] += negative_data[i]
+                neg_dir["label"] += negative_label[i]
+            else:
+                batch_count = batch_count + 1 if i % 80 == 0 else batch_count
+                batch_inds.append(batch_count)
+
+        negatives_df = pd.DataFrame({"data_path": negative_data, "label": negative_label}, index=batch_inds)
+        negatives_df.to_csv(os.path.join(negative_path, "negatives.csv"))
+
 
         m, pm = compute_confidence_interval(test_acc_record)
         result_list = ['test Acc {:.4f}'.format(ave_acc.item())]
