@@ -84,7 +84,7 @@ def main(args):
             pred = torch.argmax(logits, dim=1)
 
             if args.rule == "threshold":
-                if acc <= args.threshold:
+                if acc <= float(args.threshold) * 100:
                     negative_data += path_batch
                     negative_label += label_batch.cpu().numpy().tolist()
             elif args.rule == "compare":
