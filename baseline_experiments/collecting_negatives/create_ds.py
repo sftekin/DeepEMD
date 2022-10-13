@@ -1,4 +1,5 @@
 import argparse
+from imp import load_compiled
 import torch.nn.functional as F
 from torch.utils.data import DataLoader
 import torch.nn as nn
@@ -61,8 +62,12 @@ def main(args):
     negative_label = []
 
     # set the rules for the negatives
-    
-
+    if args.rule == "compare":
+        comparison_model = Matching(args)
+        comparison_model = load_model(comparison_model, model_dir_dispatcher['Matching'])
+        comparison_model = nn.DataParallel(comparison_model, list(range(num_gpu)))
+        comparison_model = comparison_model.cuda()
+        comparison_model.eval()
 
     with torch.no_grad():
         for i, batch in enumerate(tqdm_gen, 1):
@@ -71,15 +76,8 @@ def main(args):
             data, label_batch = data_batch.cuda(), label_batch.cuda()
             # data, _ = [_.cuda() for _ in batch]
 
-            k = args.way * args.shot
-            model.module.mode = 'encoder'
-            data = model(data)
-            data_shot, data_query = data[:k], data[k:]  # shot: 5,3,84,84  query:75,3,84,84
-            model.module.mode = 'meta'
-            if args.shot > 1:
-                data_shot = model.module.get_sfc(data_shot)
-            logits = model((data_shot.unsqueeze(0).repeat(num_gpu, 1, 1, 1, 1), data_query))
-            acc = count_acc(logits, label) * 100
+            acc = model_step(data, label, model, args, num_gpu)
+
             ave_acc.add(acc)
             test_acc_record[i - 1] = acc
             m, pm = compute_confidence_interval(test_acc_record[:i])
@@ -91,6 +89,18 @@ def main(args):
         print(result_list[0])
         print(result_list[1])
 
+
+def model_step(data, label, model, args, num_gpu):
+    k = args.way * args.shot
+    model.module.mode = 'encoder'
+    data = model(data)
+    data_shot, data_query = data[:k], data[k:]  # shot: 5,3,84,84  query:75,3,84,84
+    model.module.mode = 'meta'
+    if args.shot > 1:
+        data_shot = model.module.get_sfc(data_shot)
+    logits = model((data_shot.unsqueeze(0).repeat(num_gpu, 1, 1, 1, 1), data_query))
+    acc = count_acc(logits, label) * 100
+    return acc
 
 
 if __name__ == "__main__":
