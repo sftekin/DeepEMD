@@ -56,9 +56,21 @@ def main(args):
     label = torch.arange(args.way).repeat(args.query)
     label = label.type(torch.cuda.LongTensor)
 
+    # set the constants for the negative
+    negative_data = []
+    negative_label = []
+
+    # set the rules for the negatives
+    
+
+
     with torch.no_grad():
         for i, batch in enumerate(tqdm_gen, 1):
-            data, _ = [_.cuda() for _ in batch]
+
+            path_batch, data_batch, label_batch = batch
+            data, label_batch = data_batch.cuda(), label_batch.cuda()
+            # data, _ = [_.cuda() for _ in batch]
+
             k = args.way * args.shot
             model.module.mode = 'encoder'
             data = model(data)
@@ -83,6 +95,9 @@ def main(args):
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
+    # set the rule
+    parser.add_argument("-rule", type=str, default="threshold", choices=["threshold", "compare", "fail"])
+    parser.add_argument("-threshold", type=float, default=0.63)
     # about task
     parser.add_argument('-model_name', type=str, default="Matching", choices=['DeepEMD', 'Prototype', 'Matching'])
     parser.add_argument('-way', type=int, default=5)
