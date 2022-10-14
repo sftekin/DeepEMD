@@ -1,5 +1,6 @@
 import os.path as osp
 from PIL import Image
+import torch
 from torch.utils.data import Dataset
 from torchvision import transforms
 import os
@@ -17,11 +18,12 @@ class Negatives(Dataset):
 
         data_batch, label_batch = [], []
         for i in range(1, num_batches + 1):
-
-
-        self.data = data  # data path of all data
-        self.label = label  # label of all data
-        self.num_class = len(set(label))
+            batch_df = data_df.loc[data_df.index == i]
+            data_batch.append(batch_df["data_path"])
+            label_batch.append(label_batch["data_path"])
+    
+        self.data =  data_batch # data path of all data
+        self.label = label_batch  # label of all data
 
         image_size = 84
         self.transform = transforms.Compose([
@@ -35,11 +37,25 @@ class Negatives(Dataset):
     def __len__(self):
         return len(self.data)
 
-    def __getitem__(self, i):
-        path, label = self.data[i], self.label[i]
-        image = self.transform(Image.open(path).convert('RGB'))
-        return path, image, label
 
+    def next(self):
+        for i in range(len(self.data)):
+            label = torch.tensor(self.label[i])
+            image = self.load_image(self.data[i])
+            yield image, label
+
+    def load_image(self, batch_path):
+        images = []
+        for path in batch_path:
+            image = self.transform(Image.open(path).convert("RGB"))
+            images.append(image)
+        images = torch.stack(images)
+        return images
 
 if __name__ == '__main__':
-    a = Negatives(rule_name="threshold", model_name="DeepEMD")
+    negatives_set = Negatives(rule_name="threshold", model_name="DeepEMD")
+
+    for im, label in negatives_set.next():
+        print(im.shape)
+        print(label.shape)
+
