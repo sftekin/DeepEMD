@@ -19,8 +19,8 @@ class Negatives(Dataset):
         data_batch, label_batch = [], []
         for i in range(1, num_batches + 1):
             batch_df = data_df.loc[data_df.index == i]
-            data_batch.append(batch_df["data_path"])
-            label_batch.append(label_batch["data_path"])
+            data_batch.append(batch_df["data_path"].values.flatten())
+            label_batch.append(batch_df["label"].values.flatten())
     
         self.data =  data_batch # data path of all data
         self.label = label_batch  # label of all data
@@ -32,7 +32,7 @@ class Negatives(Dataset):
 
             transforms.ToTensor(),
             transforms.Normalize(np.array([x / 255.0 for x in [125.3, 123.0, 113.9]]),
-                                    np.array([x / 255.0 for x in [63.0, 62.1, 66.7]]))])
+                                 np.array([x / 255.0 for x in [63.0, 62.1, 66.7]]))])
 
     def __len__(self):
         return len(self.data)
@@ -42,7 +42,7 @@ class Negatives(Dataset):
         for i in range(len(self.data)):
             label = torch.tensor(self.label[i])
             image = self.load_image(self.data[i])
-            yield image, label
+            yield self.data[i], image, label
 
     def load_image(self, batch_path):
         images = []
@@ -53,9 +53,27 @@ class Negatives(Dataset):
         return images
 
 if __name__ == '__main__':
+    from label_names import label_names
+    import matplotlib.pyplot as plt
+
     negatives_set = Negatives(rule_name="threshold", model_name="DeepEMD")
 
-    for im, label in negatives_set.next():
-        print(im.shape)
-        print(label.shape)
+    for path, im, label in negatives_set.next():
+        # plot supports
+        fig, ax = plt.subplots(1, 5, figsize=(8, 10))
+        for i in range(5):
+            im = Image.open(path[i]).convert("RGB")
+            ax[i].imshow(im)
+            ax[i].set_xticks([])
+            ax[i].set_yticks([])
+            ax[i].set_title(f"{label[i]}")
+        plt.savefig("support.png", dpi=200, bbox_inches="tight")
+
+        #plot query
+        query_idx = 5
+        fig, ax = plt.subplots()
+        im = Image.open(path[query_idx]).convert("RGB")
+        ax.imshow(im)
+        plt.savefig("query.png", dpi=200, bbox_inches="tight")
+
 
