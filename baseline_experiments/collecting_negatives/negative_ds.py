@@ -7,6 +7,8 @@ import os
 import numpy as np
 import pandas as pd
 
+from Models.utils import ensure_path
+
 class Negatives(Dataset):
 
     def __init__(self, rule_name, model_name):
@@ -56,6 +58,8 @@ if __name__ == '__main__':
     from label_names import label_names
     import matplotlib.pyplot as plt
 
+    figures_dir = osp.join("content", "DeepEMD", "outputs", "figures")
+    ensure_path(figures_dir)
     negatives_set = Negatives(rule_name="threshold", model_name="DeepEMD")
 
     for path, im, label in negatives_set.next():
@@ -67,13 +71,15 @@ if __name__ == '__main__':
             ax[i].set_xticks([])
             ax[i].set_yticks([])
             ax[i].set_title(f"{label[i]}")
-        plt.savefig("support.png", dpi=200, bbox_inches="tight")
+        fig_path = osp.join(figures_dir, "support.png")
+        plt.savefig(fig_path, dpi=200, bbox_inches="tight")
 
         #plot query
         query_idx = 5
         fig, ax = plt.subplots()
         im = Image.open(path[query_idx]).convert("RGB")
         ax.imshow(im)
-        plt.savefig("query.png", dpi=200, bbox_inches="tight")
+        fig_path = osp.join(figures_dir, "query.png")
+        plt.savefig(fig_path, dpi=200, bbox_inches="tight")
 
 
