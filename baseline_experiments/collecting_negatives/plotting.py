@@ -6,7 +6,7 @@ import matplotlib.pyplot as plt
 from Models.utils import ensure_path
 
 
-def plot_support_query(batch_idx, batch_path, model1_logits, model2_logits, query_ind):
+def plot_comparison(batch_idx, batch_path, model1_logits, model2_logits, query_ind):
     figures_dir = osp.join("/content", "DeepEMD", "outputs", "figures")
     ensure_path(figures_dir)
 
@@ -28,3 +28,6 @@ def plot_support_query(batch_idx, batch_path, model1_logits, model2_logits, quer
 
         fig_path = osp.join(figures_dir, f"comparision_{batch_idx}_{k}.png")
         plt.savefig(fig_path, dpi=200, bbox_inches="tight")
+
+def plot_batch():
+    pass
