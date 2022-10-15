@@ -45,5 +45,5 @@ def plot_batch(support_path, qurey_paths, logits, mode="goods", filename="emd"):
             for i in range(5):
                 ax[i].set_title(f"logit:{logits[k, i]:.2f}")
 
-        fig_path = osp.join(figures_dir, f"{mode}_{filename}.png")
-        plt.savefig(fig_path, dpi=200, bbox_inches="tight")
+            fig_path = osp.join(figures_dir, f"{mode}_{filename}_{k}.png")
+            plt.savefig(fig_path, dpi=200, bbox_inches="tight")
