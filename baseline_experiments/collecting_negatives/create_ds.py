@@ -15,6 +15,8 @@ import pickle as pkl
 import os
 from Models.dataloader.data_utils import *
 import pandas as pd
+import numpy as np
+from plotting import plot_support_query
 
 
 DATA_DIR='/content/DeepEMD/datasets'
@@ -89,10 +91,16 @@ def main(args):
                     negative_label += label_batch.cpu().numpy().tolist()
             elif args.rule == "compare":
                 acc_2, logits_2 = model_step(data, label, comparison_model, args, num_gpu)
-                pred2 = torch.argmax(logits, dim=1)
-                if acc <= acc_2:
+                pred2 = torch.argmax(logits_2, dim=1)
+                if acc < acc_2:
                     negative_data += path_batch
                     negative_label += label_batch.cpu().numpy().tolist()
+                    # plot the bests of compare
+                    mistakes_emd = pred != label
+                    truths_model = pred2 == label
+                    query_ind = np.where(np.logical_and(mistakes_emd.cpu(), truths_model.cpu()))[0]
+                    plot_support_query(path_batch, label.cpu().numpy(), query_idx=query_ind[0])
+
             else:
                 support_path = path_batch[:5]
                 query_path = path_batch[5:]
@@ -155,7 +163,7 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser()
     # set the rule
     parser.add_argument('-model_name', type=str, default="DeepEMD", choices=['DeepEMD', 'Prototype', 'Matching'])
-    parser.add_argument("-rule", type=str, default="threshold", choices=["threshold", "compare", "fail"])
+    parser.add_argument("-rule", type=str, default="compare", choices=["threshold", "compare", "fail"])
     parser.add_argument("-threshold", type=float, default=0.63)
     # about task
     parser.add_argument('-way', type=int, default=5)
