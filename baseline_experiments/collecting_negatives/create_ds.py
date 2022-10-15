@@ -99,8 +99,7 @@ def main(args):
                     mistakes_emd = pred != label
                     truths_model = pred2 == label
                     query_ind = np.where(np.logical_and(mistakes_emd.cpu(), truths_model.cpu()))[0]
-                    plot_support_query(path_batch, label.cpu().numpy(), query_idx=query_ind[0])
-
+                    plot_support_query(i, path_batch, label.cpu().numpy(), query_idx=query_ind[0])
             else:
                 support_path = path_batch[:5]
                 query_path = path_batch[5:]
