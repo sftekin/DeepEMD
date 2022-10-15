@@ -108,11 +108,11 @@ def main(args):
                 top_k = torch.topk(pos_logits, k=2, dim=1)[0]
                 closeness = (top_k[:, 0] - top_k[:, 1]).cpu().numpy()
                 closeness_set += closeness.tolist()
-                thr_close = closeness < args.closeness
+                thr_close = closeness >= args.closeness
                 if thr_close.any():
                     good_query_paths = pos_paths[thr_close]
                     good_query_logits = pos_logits[thr_close]
-                    plot_batch(path_batch[:5], good_query_paths, good_query_logits, mode="goods", file_name=f"{args.model_name}_{i}")
+                    plot_batch(path_batch[:5], good_query_paths, good_query_logits, mode="goods", filename=f"{args.model_name}_{i}")
 
             elif args.rule == "bads":
                 pass

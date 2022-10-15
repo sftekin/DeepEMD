@@ -43,7 +43,7 @@ def plot_batch(support_path, qurey_paths, logits, mode="goods", filename="emd"):
             ax[5].set_xticks([])
             ax[5].set_yticks([])
             for i in range(5):
-                ax[i].set_title(f"logit:{logits[k]:.2f}")
+                ax[i].set_title(f"logit:{logits[k, i]:.2f}")
 
         fig_path = osp.join(figures_dir, f"{mode}_{filename}.png")
         plt.savefig(fig_path, dpi=200, bbox_inches="tight")
