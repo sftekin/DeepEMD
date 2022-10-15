@@ -175,10 +175,10 @@ def model_step(data, label, model, args, num_gpu):
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
     # set the rule
-    parser.add_argument('-model_name', type=str, default="DeepEMD", choices=['DeepEMD', 'Prototype', 'Matching'])
+    parser.add_argument('-model_name', type=str, default="Matching", choices=['DeepEMD', 'Prototype', 'Matching'])
     parser.add_argument("-rule", type=str, default="bads", choices=["threshold", "compare", "fail", "goods", "bads"])
     parser.add_argument("-threshold", type=float, default=0.63)
-    parser.add_argument("-closeness", type=float, default=5.0)
+    parser.add_argument("-closeness", type=float, default=0.06)
     # about task
     parser.add_argument('-way', type=int, default=5)
     parser.add_argument('-shot', type=int, default=1)
