@@ -102,9 +102,10 @@ def main(args):
                     truths_model = pred2 == label
                     query_ind = np.where(np.logical_and(mistakes_emd.cpu(), truths_model.cpu()))[0]
                     plot_comparison(i, path_batch, logits, logits_2, query_ind)
-            elif args.rule == "goods":
-                pos_logits = logits[pred == label]
-                pos_paths = np.array(path_batch)[5:][pred.cpu() == label.cpu()]
+            elif args.rule in ["goods", "bads"]:
+                rule = pred == label if args.rule == "goods" else pred != label
+                pos_logits = logits[rule]
+                pos_paths = np.array(path_batch)[5:][rule.cpu()]
                 top_k = torch.topk(pos_logits, k=2, dim=1)[0]
                 closeness = (top_k[:, 0] - top_k[:, 1]).cpu().numpy()
                 closeness_set += closeness.tolist()
@@ -112,7 +113,7 @@ def main(args):
                 if thr_close.any():
                     good_query_paths = pos_paths[thr_close]
                     good_query_logits = pos_logits[thr_close]
-                    plot_batch(path_batch[:5], good_query_paths, good_query_logits, mode="goods", filename=f"{args.model_name}_{i}")
+                    plot_batch(path_batch[:5], good_query_paths, good_query_logits, mode=args.rule, filename=f"{args.model_name}_{i}")
 
             elif args.rule == "bads":
                 pass
@@ -175,9 +176,9 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser()
     # set the rule
     parser.add_argument('-model_name', type=str, default="DeepEMD", choices=['DeepEMD', 'Prototype', 'Matching'])
-    parser.add_argument("-rule", type=str, default="goods", choices=["threshold", "compare", "fail", "goods", "bads"])
+    parser.add_argument("-rule", type=str, default="bads", choices=["threshold", "compare", "fail", "goods", "bads"])
     parser.add_argument("-threshold", type=float, default=0.63)
-    parser.add_argument("-closeness", type=float, default=4.0)
+    parser.add_argument("-closeness", type=float, default=5.0)
     # about task
     parser.add_argument('-way', type=int, default=5)
     parser.add_argument('-shot', type=int, default=1)
