@@ -1,4 +1,3 @@
-from msvcrt import kbhit
 import os.path as osp
 from PIL import Image
 from label_names import label_names

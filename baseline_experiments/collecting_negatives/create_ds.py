@@ -75,6 +75,7 @@ def main(args):
         comparison_model = comparison_model.cuda()
         comparison_model.eval()
 
+    closeness_set = []
     with torch.no_grad():
         for i, batch in enumerate(tqdm_gen, 1):
 
@@ -100,6 +101,11 @@ def main(args):
                     truths_model = pred2 == label
                     query_ind = np.where(np.logical_and(mistakes_emd.cpu(), truths_model.cpu()))[0]
                     plot_comparison(i, path_batch, logits, logits_2, query_ind)
+            elif args.rule == "goods":
+                pos_logits = logits[pred == label]
+                top_k = torch.topk(pos_logits, k=2, dim=1)[0]
+                closeness = top_k[:, 0] - top_k[:, 1]
+                closeness_set += closeness.cpu().numpy().tolist()
             else:
                 support_path = path_batch[:5]
                 query_path = path_batch[5:]
@@ -107,9 +113,6 @@ def main(args):
                 label_ind = np.array(label_batch[5:])[pred == label]
                 negative_data.append(support_path + query_path)
                 negative_label.append(label_batch[:5] + label_ind)
-
-                
-                
 
             ave_acc.add(acc)
             test_acc_record[i - 1] = acc
@@ -162,7 +165,7 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser()
     # set the rule
     parser.add_argument('-model_name', type=str, default="DeepEMD", choices=['DeepEMD', 'Prototype', 'Matching'])
-    parser.add_argument("-rule", type=str, default="compare", choices=["threshold", "compare", "fail"])
+    parser.add_argument("-rule", type=str, default="goods", choices=["threshold", "compare", "fail", "goods"])
     parser.add_argument("-threshold", type=float, default=0.63)
     # about task
     parser.add_argument('-way', type=int, default=5)
