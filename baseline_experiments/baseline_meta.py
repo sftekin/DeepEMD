@@ -241,7 +241,7 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser()
 
     # My additional arguments
-    parser.add_argument('-model_name', type=str, default="Matching", choices=['DeepEMD', 'Prototype', 'Matching'])
+    parser.add_argument('-model_name', type=str, default="Prototype", choices=['DeepEMD', 'Prototype', 'Matching'])
 
     # about dataset and training
     parser.add_argument('-dataset', type=str, default='miniimagenet',
