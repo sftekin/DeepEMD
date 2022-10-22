@@ -1,7 +1,3 @@
-import sys
-
-sys.path.append(".")
-
 import argparse
 import torch.nn.functional as F
 from torch.utils.data import DataLoader
@@ -15,9 +11,9 @@ from torch.utils.tensorboard import SummaryWriter
 import tqdm
 import time
 
-PRETRAIN_DIR = '/content/DeepEMD/outputs/deepemd_pretrain_model'
-DATA_DIR = '/content/DeepEMD/datasets'
-SAVE_DIR = "/content/drive/MyDrive/repo_dumps/DeepEMD/checkpoints"
+PRETRAIN_DIR = 'outputs/deepemd_pretrain_model'
+DATA_DIR = 'datasets'
+SAVE_DIR = "outputs/checkpoints"
 
 model_dispatcher = {
     "DeepEMD": DeepEMD,
@@ -46,7 +42,7 @@ def main(args):
 
     # create save_path for the checkpoints
     model_save_name = f"{args.model_name}" if args.model_name != "DeepEMD" else f"{args.model_name}{args.deepemd}"
-    args.save_path = os.path.join(SAVE_DIR, args.dataset, model_save_name, args.shot, args.way)
+    args.save_path = os.path.join(SAVE_DIR, args.dataset, model_save_name, str(args.shot), str(args.way))
     if args.extra_dir is not None:
         args.save_path = osp.join(args.save_path, args.extra_dir)
     ensure_path(args.save_path)
