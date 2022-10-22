@@ -13,12 +13,13 @@ from Models.models.Network import DeepEMD
 from Models.utils import *
 from Models.dataloader.data_utils import *
 
-DATA_DIR='your/default/dataset/dir'
+DATA_DIR = 'your/default/dataset/dir'
 # DATA_DIR='/home/zhangchi/dataset'
 
 parser = argparse.ArgumentParser()
 # about dataset and network
-parser.add_argument('-dataset', type=str, default='miniimagenet', choices=['miniimagenet', 'cub','tieredimagenet','fc100','tieredimagenet_yao','cifar_fs'])
+parser.add_argument('-dataset', type=str, default='miniimagenet',
+                    choices=['miniimagenet', 'cub', 'tieredimagenet', 'fc100', 'tieredimagenet_yao', 'cifar_fs'])
 parser.add_argument('-data_dir', type=str, default=DATA_DIR)
 # about pre-training
 parser.add_argument('-max_epoch', type=int, default=120)
@@ -37,14 +38,15 @@ parser.add_argument('-num_episode', type=int, default=100)
 parser.add_argument('-save_all', action='store_true', help='save models on each epoch')
 parser.add_argument('-random_val_task', action='store_true', help='random samples tasks for validation in each epoch')
 # about deepemd setting
-parser.add_argument('-norm', type=str, default='center', choices=[ 'center'])
+parser.add_argument('-norm', type=str, default='center', choices=['center'])
 parser.add_argument('-deepemd', type=str, default='fcn', choices=['fcn', 'grid', 'sampling'])
 parser.add_argument('-feature_pyramid', type=str, default=None)
 parser.add_argument('-solver', type=str, default='opencv', choices=['opencv'])
 # about training
 parser.add_argument('-gpu', default='0,1')
 parser.add_argument('-seed', type=int, default=1)
-parser.add_argument('-extra_dir', type=str,default=None,help='extra information that is added to checkpoint dir, e.g. hyperparameters')
+parser.add_argument('-extra_dir', type=str, default=None,
+                    help='extra information that is added to checkpoint dir, e.g. hyperparameters')
 
 args = parser.parse_args()
 pprint(vars(args))
@@ -57,12 +59,12 @@ args.save_path = 'pre_train/%s/%d-%.4f-%d-%.2f/' % \
                  (dataset_name, args.bs, args.lr, args.step_size, args.gamma)
 args.save_path = osp.join('checkpoint', args.save_path)
 if args.extra_dir is not None:
-    args.save_path=osp.join(args.save_path,args.extra_dir)
+    args.save_path = osp.join(args.save_path, args.extra_dir)
 ensure_path(args.save_path)
 
 args.dir = '/content/drive/MyDrive/repo_dumps/DeepEMD/models/deepemd_pretrain_model/miniimagenet/resnet12/max_acc.pth'
 
-Dataset=set_up_datasets(args)
+Dataset = set_up_datasets(args)
 trainset = Dataset('train', args)
 train_loader = DataLoader(dataset=trainset, batch_size=args.bs, shuffle=True, num_workers=8, pin_memory=True)
 
@@ -113,7 +115,7 @@ for epoch in range(1, args.max_epoch + 1):
     model.module.mode = 'pre_train'
     tl = Averager()
     ta = Averager()
-    #standard classification for pretrain
+    # standard classification for pretrain
     tqdm_gen = tqdm.tqdm(train_loader)
     for i, batch in enumerate(tqdm_gen, 1):
         global_count = global_count + 1
@@ -140,22 +142,23 @@ for epoch in range(1, args.max_epoch + 1):
     model.module.mode = 'meta'
     vl = Averager()
     va = Averager()
-    #use deepemd fcn for validation
+    # use deepemd fcn for validation
     with torch.no_grad():
         tqdm_gen = tqdm.tqdm(val_loader)
         for i, batch in enumerate(tqdm_gen, 1):
 
             data, _ = [_.cuda() for _ in batch]
             k = args.way * args.shot
-            #encoder data by encoder
+            # encoder data by encoder
             model.module.mode = 'encoder'
             data = model(data)
             data_shot, data_query = data[:k], data[k:]
-            #episode learning
+            # episode learning
             model.module.mode = 'meta'
-            if args.shot > 1:#k-shot case
+            if args.shot > 1:  # k-shot case
                 data_shot = model.module.get_sfc(data_shot)
-            logits = model((data_shot.unsqueeze(0).repeat(num_gpu, 1, 1, 1, 1), data_query))#repeat for multi-gpu processing
+            logits = model(
+                (data_shot.unsqueeze(0).repeat(num_gpu, 1, 1, 1, 1), data_query))  # repeat for multi-gpu processing
             loss = F.cross_entropy(logits, label)
             acc = count_acc(logits, label)
             vl.add(loss.item())
