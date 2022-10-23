@@ -1,5 +1,5 @@
 poetry:
-	pip install cvxpy qpth tqdm tensorboard opencv-python
+	pip install cvxpy qpth tqdm tensorboard opencv-python torchvision Pillow
 	# code --install-extension ms-python.python
 	# rm ~/.vscode-server/bin/*/vscode-remote-lock*
 	# code --install-extension equinusocio.vsc-community-material-theme
