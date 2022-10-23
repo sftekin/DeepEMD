@@ -7,29 +7,29 @@ import numpy as np
 import os.path as osp
 import random
 
-def save_list_to_txt(name,input_list):
-    f=open(name,mode='w')
+
+def save_list_to_txt(name, input_list):
+    f = open(name, mode='w')
     for item in input_list:
-        f.write(item+'\n')
+        f.write(item + '\n')
     f.close()
+
 
 def set_gpu(args):
     gpu_list = [int(x) for x in args.gpu.split(',')]
-    print ('use gpu:',gpu_list)
+    print('use gpu:', gpu_list)
     os.environ['CUDA_DEVICE_ORDER'] = 'PCI_BUS_ID'
     os.environ['CUDA_VISIBLE_DEVICES'] = args.gpu
     return gpu_list.__len__()
-
-
-
 
 
 def ensure_path(path):
     if os.path.exists(path):
         pass
     else:
-        print ('create folder:',path)
+        print('create folder:', path)
         os.makedirs(path)
+
 
 class Averager():
 
@@ -53,11 +53,12 @@ def count_acc(logits, label):
         return (pred == label).type(torch.FloatTensor).mean().item()
 
 
-
-
 _utils_pp = pprint.PrettyPrinter()
+
+
 def pprint(x):
     _utils_pp.pprint(x)
+
 
 def compute_confidence_interval(data):
     """
@@ -72,11 +73,14 @@ def compute_confidence_interval(data):
     return m, pm
 
 
-
-def load_model(model,dir):
+def load_model(model, dir, mode="cuda"):
     model_dict = model.state_dict()
     print('loading model from :', dir)
-    pretrained_dict = torch.load(dir)['params']
+    if mode == "cuda":
+        pretrained_dict = torch.load(dir)['params']
+    else:
+        pretrained_dict = torch.load(dir, map_location=torch.device('cpu'))['params']
+
     if 'encoder' in list(pretrained_dict.keys())[0]:  # load from a parallel meta-trained model
         if 'module' in list(pretrained_dict.keys())[0]:
             pretrained_dict = {k[7:]: v for k, v in pretrained_dict.items()}
@@ -103,6 +107,7 @@ def set_seed(seed):
         torch.cuda.manual_seed_all(seed)
         torch.backends.cudnn.deterministic = True
         torch.backends.cudnn.benchmark = False
+
 
 def detect_grad_nan(model):
     for param in model.parameters():

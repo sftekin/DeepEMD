@@ -14,12 +14,16 @@ import argparse
 import pandas as pd
 import numpy as np
 import pickle as pkl
+import torch
+from torchvision import transforms
+from PIL import Image
 
 from Models.models.Network import DeepEMD
 from Models.models.baseline_models import Prototype, Matching
 from Models.utils import ensure_path, load_model
+from plotting import plot_support_set, plot_query_set
 
-DATA_DIR = 'datasets'
+DATA_DIR = 'datasets/miniimagenet'
 SAVE_DIR = "outputs"
 
 model_dispatcher = {
@@ -44,7 +48,7 @@ def main(args):
     # load model
     model = model_dispatcher[args.model_name](args)
     model_dir = model_dir_dispatcher[args.model_name]
-    model = load_model(model, model_dir)
+    model = load_model(model, model_dir, mode="cpu")
     model = model.cpu()
     model.eval()
 
@@ -72,15 +76,63 @@ def main(args):
         ensure_path(save_path)
         meta_data_path = osp.join(save_path, f"{set_n}_meta.pkl")
         meta_data = [support_set, query_set]
-        with open(meta_data_path, "w") as f:
+        with open(meta_data_path, "wb") as f:
             pkl.dump(meta_data, f)
+
+        # create support and query data
+        support_data, query_data = [], []
+        support_paths, query_paths = [], []
+        for label, filenames in support_set.items():
+            im_paths = [osp.join(DATA_DIR, "images", file_n) for file_n in filenames]
+            query_path = osp.join(DATA_DIR, "images", query_set[label])
+            support_data.append(load_image(im_paths))
+            query_data.append(load_image([query_path]))
+            support_paths.append(im_paths)
+            query_paths.append(query_path)
+        support_data = torch.stack(support_data, dim=0)
+        query_data = torch.stack(query_data, dim=0)
+        support_paths = np.array(support_paths).T
+        query_paths = np.array(query_paths)
+
+        # plot query and support data
+        label_names = list(support_set.keys())
+        plot_support_set(support_paths, label_names, set_name=set_n)
+        plot_query_set(query_paths, label_names, set_name=set_n)
+
+        print()
+        # perform inference
+
+
+
+
+def load_image(batch_path):
+    image_size = 84
+    transform = transforms.Compose([
+        transforms.Resize([92, 92]),
+        transforms.CenterCrop(image_size),
+
+        transforms.ToTensor(),
+        transforms.Normalize(np.array([x / 255.0 for x in [125.3, 123.0, 113.9]]),
+                             np.array([x / 255.0 for x in [63.0, 62.1, 66.7]]))])
+
+    images = []
+    for path in batch_path:
+        image = transform(Image.open(path).convert("RGB"))
+        images.append(image)
+    images = torch.stack(images)
+    return images
 
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
 
     # My additional arguments
-    parser.add_argument('-model_name', type=str, default="Prototype", choices=['DeepEMD', 'Prototype', 'Matching'])
+    parser.add_argument('-model_name', type=str, default="Matching", choices=['DeepEMD', 'Prototype', 'Matching'])
+
+    # about task
+    parser.add_argument('-way', type=int, default=5)
+    parser.add_argument('-shot', type=int, default=1)
+    parser.add_argument('-query', type=int, default=15, help='number of query image per class')
 
     # about model
     parser.add_argument('-temperature', type=float, default=12.5)

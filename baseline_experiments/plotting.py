@@ -1,10 +1,10 @@
 import os.path as osp
 from PIL import Image
-from label_names import label_names
+from collecting_negatives.label_names import label_names
 import matplotlib.pyplot as plt
 from Models.utils import ensure_path
 
-figures_dir = osp.join("/content", "DeepEMD", "outputs", "figures")
+figures_dir = osp.join("outputs", "figures")
 ensure_path(figures_dir)
 
 
@@ -48,3 +48,30 @@ def plot_batch(support_path, qurey_paths, logits, mode="goods", filename="emd"):
 
         fig_path = osp.join(figures_dir, f"{mode}_{filename}_{k}.png")
         plt.savefig(fig_path, dpi=200, bbox_inches="tight")
+
+
+def plot_support_set(support_paths, labels_str, set_name="train"):
+    m, n = support_paths.shape
+    fig, ax = plt.subplots(m, n, figsize=(10, 10))
+    for i in range(m):
+        for j in range(n):
+            im = Image.open(support_paths[i, j]).convert("RGB")
+            ax[i, j].imshow(im)
+            ax[i, j].set_xticks([])
+            ax[i, j].set_yticks([])
+            if i == 0:
+                ax[i, j].set_title(labels_str[j])
+    fig_path = osp.join(figures_dir, f"{set_name}_support.png")
+    plt.savefig(fig_path, dpi=200, bbox_inches="tight")
+
+
+def plot_query_set(query_paths, labels_str, set_name="train"):
+    fig, ax = plt.subplots(1, len(query_paths), figsize=(8, 10))
+    for i in range(len(query_paths)):
+        im = Image.open(query_paths[i]).convert("RGB")
+        ax[i].imshow(im)
+        ax[i].set_title(labels_str[i])
+        ax[i].set_xticks([])
+        ax[i].set_yticks([])
+    fig_path = osp.join(figures_dir, f"{set_name}_query.png")
+    plt.savefig(fig_path, dpi=200, bbox_inches="tight")

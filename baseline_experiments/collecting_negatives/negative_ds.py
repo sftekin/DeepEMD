@@ -8,7 +8,6 @@ import numpy as np
 import pandas as pd
 
 from Models.utils import ensure_path
-from plotting import plot_support_query
 
 
 class Negatives(Dataset):
@@ -25,8 +24,8 @@ class Negatives(Dataset):
             batch_df = data_df.loc[data_df.index == i]
             data_batch.append(batch_df["data_path"].values.flatten())
             label_batch.append(batch_df["label"].values.flatten())
-    
-        self.data =  data_batch # data path of all data
+
+        self.data = data_batch  # data path of all data
         self.label = label_batch  # label of all data
 
         image_size = 84
@@ -40,7 +39,6 @@ class Negatives(Dataset):
 
     def __len__(self):
         return len(self.data)
-
 
     def next(self):
         for i in range(len(self.data)):
@@ -57,10 +55,9 @@ class Negatives(Dataset):
         return images
 
 
-
 if __name__ == '__main__':
 
     negatives_set = Negatives(rule_name="threshold", model_name="DeepEMD")
     for path, image, label in negatives_set.next():
         # plot supports
-        plot_support_query(batch_path=path, batch_label=label, query_idx=5)
+        print()

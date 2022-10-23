@@ -1,23 +1,16 @@
 import argparse
-from fileinput import close
-from imp import load_compiled
-import torch.nn.functional as F
 from torch.utils.data import DataLoader
 import torch.nn as nn
 from Models.dataloader.samplers import CategoriesSampler
 from Models.utils import *
-from Models.dataloader.data_utils import *
 from Models.models.Network import DeepEMD
 from Models.models.baseline_models import Prototype, Matching
-from torch.utils.tensorboard import SummaryWriter
 import tqdm
-import time
-import pickle as pkl
 import os
 from Models.dataloader.data_utils import *
 import pandas as pd
 import numpy as np
-from plotting import plot_comparison, plot_batch
+from baseline_experiments.plotting import plot_comparison, plot_batch
 
 
 DATA_DIR='/content/DeepEMD/datasets'
