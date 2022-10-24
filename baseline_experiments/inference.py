@@ -22,7 +22,7 @@ import torch.nn.functional as F
 from Models.models.Network import DeepEMD
 from Models.models.baseline_models import Prototype, Matching
 from Models.utils import ensure_path, load_model
-from plotting import plot_support_set, plot_query_set, plot_top_k
+from plotting import plot_support_set, plot_query_set, plot_top_k, plot_episodes
 
 DATA_DIR = 'datasets/miniimagenet'
 SAVE_DIR = "outputs"
@@ -98,6 +98,8 @@ def main(args):
         plot_query_set(query_paths, label_names, set_name=set_n)
 
         # perform inference
+        model_errors = []
+        model_logits = {}
         for model_name in model_names:
             fig_n = f"{set_n}_{model_name}"
 
@@ -129,9 +131,24 @@ def main(args):
             errors = all_preds == labels
             acc = errors.astype(int).mean() * 100
             print(f"{set_n} Accuracy:{acc:.2f}")
+            model_errors.append(errors)
+            model_logits[model_name] = all_logits
 
             # get top k
             plot_top_k(all_logits, support_paths, set_name=fig_n, k=10)
+
+        # analysis
+        model_errors = np.array(model_errors, dtype=int)
+        easy_episodes = model_errors.sum(axis=0) == len(model_names)
+        hard_episodes = model_errors.sum(axis=0) == 0
+        avg_episodes = (model_errors.sum(axis=0) > 0) & (model_errors.sum(axis=0) < len(model_names))
+        episode_names = ["easy", "hard", "avg"]
+        episode_errors = [easy_episodes, hard_episodes, avg_episodes]
+        for ep_er, ep_name in zip(episode_errors, episode_names):
+            if any(ep_er):
+                plot_episodes(support_paths, query_paths, ep_er, ep_name, model_logits, set_name=set_n)
+            else:
+                print(f"Skipping {set_n} {ep_name}")
 
         print(f"{set_n} finished")
 

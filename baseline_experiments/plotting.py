@@ -97,3 +97,35 @@ def plot_top_k(logits, paths, k=10, set_name="train"):
     plt.savefig(fig_path, dpi=200, bbox_inches="tight")
 
 
+def plot_episodes(support_paths, query_paths, ep_er, ep_name, logits, set_name="train"):
+    ep_dir = osp.join(figures_dir, f"{set_name}_{ep_name}_episodes")
+    ensure_path(ep_dir)
+
+    counter = 0
+    way_count = support_paths.shape[1]
+    support_ids = np.where(ep_er)[0] // way_count
+    query_ids = np.where(ep_er)[0] % way_count
+    fig, ax = plt.subplots(1, way_count + 1, figsize=(12, 12))
+    for sup_idx, query_idx in zip(support_ids, query_ids):
+        query_path = query_paths[query_idx]
+        sup_paths = support_paths[sup_idx]
+        ax[0].imshow(Image.open(query_path).convert("RGB"))
+        ax[0].set_title(f"Query")
+        ax[0].set_xticks([])
+        ax[0].set_yticks([])
+
+        title_set = []
+        for model_name, logit_arr in logits.items():
+            logit_set = logit_arr[query_idx, sup_idx*way_count:]
+            title_set.append([f"{model_name}:{l:.3f}" for l in logit_set])
+
+        for j, path in enumerate(sup_paths):
+            title_str = '\n'.join([t_set[j] for t_set in title_set])
+            ax[j+1].imshow(Image.open(path).convert("RGB"))
+            ax[j+1].set_title(title_str, fontsize=8)
+            ax[j+1].set_xticks([])
+            ax[j+1].set_yticks([])
+
+        fig_path = osp.join(ep_dir, f"{counter}.png")
+        plt.savefig(fig_path, dpi=200, bbox_inches="tight")
+        counter += 1
