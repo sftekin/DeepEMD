@@ -41,26 +41,18 @@ model_dir_dispatcher = {
 
 
 def main(args):
-    model_name = args.model_name
     set_names = ["train", "val", "test"]
+    model_names = ["DeepEMD", "Matching"]
     num_class, num_samples = args.way, args.query * args.way
     save_path = osp.join(SAVE_DIR, "inference")
 
-    # load model
-    model = model_dispatcher[model_name](args)
-    model_dir = model_dir_dispatcher[model_name]
-    model = load_model(model, model_dir, mode="cpu")
-    model = model.cpu()
-    model.eval()
-
     for set_n in set_names:
         set_path = osp.join(DATA_DIR, "split", f"{set_n}.csv")
-        fig_n = f"{set_n}_{model_name}"
         ds_df = pd.read_csv(set_path)
 
         # select labels
         label_count = len(ds_df["label"].unique())
-        rand_label_ints = np.random.randint(label_count, size=num_class)
+        rand_label_ints = np.random.choice(range(label_count), num_class, replace=False)
         label_list = ds_df["label"].unique()[rand_label_ints]
         data_filtered = pd.concat([ds_df.loc[ds_df["label"] == label] for label in label_list])
 
@@ -102,33 +94,45 @@ def main(args):
 
         # plot query and support data
         label_names = list(support_set.keys())
-        plot_support_set(support_paths, label_names, set_name=fig_n)
-        plot_query_set(query_paths, label_names, set_name=fig_n)
+        plot_support_set(support_paths, label_names, set_name=set_n)
+        plot_query_set(query_paths, label_names, set_name=set_n)
 
         # perform inference
-        k = args.way * args.shot
-        all_preds, all_logits = [], []
-        for i in range(num_samples):
-            data = torch.cat([support_data[i], query_data], dim=0)
-            model.mode = 'encoder'
-            data = model(data)
-            data_shot, data_query = data[:k], data[k:]
-            model.mode = 'meta'
-            logits = model((data_shot, data_query))
-            pred = torch.argmax(logits, dim=1)
-            all_preds.append(pred.numpy())
-            all_logits.append(logits.detach().numpy())
-        all_preds = np.concatenate(all_preds, axis=0)
-        all_logits = np.concatenate(all_logits, axis=1)
+        for model_name in model_names:
+            fig_n = f"{set_n}_{model_name}"
 
-        # evaluate
-        labels = np.tile(np.arange(args.way), args.query * args.way)
-        errors = all_preds == labels
-        acc = errors.astype(int).mean() * 100
-        print(f"{set_n} Accuracy:{acc:.2f}")
+            # load model
+            model = model_dispatcher[model_name](args)
+            model_dir = model_dir_dispatcher[model_name]
+            model = load_model(model, model_dir, mode="cpu")
+            model = model.cpu()
+            model.eval()
 
-        # get top k
-        plot_top_k(all_logits, support_paths, set_name=fig_n, k=10)
+            # inference
+            k = args.way * args.shot
+            all_preds, all_logits = [], []
+            for i in range(num_samples):
+                data = torch.cat([support_data[i], query_data], dim=0)
+                model.mode = 'encoder'
+                data = model(data)
+                data_shot, data_query = data[:k], data[k:]
+                model.mode = 'meta'
+                logits = model((data_shot, data_query))
+                pred = torch.argmax(logits, dim=1)
+                all_preds.append(pred.numpy())
+                all_logits.append(logits.detach().numpy())
+            all_preds = np.concatenate(all_preds, axis=0)
+            all_logits = np.concatenate(all_logits, axis=1)
+
+            # evaluate
+            labels = np.tile(np.arange(args.way), args.query * args.way)
+            errors = all_preds == labels
+            acc = errors.astype(int).mean() * 100
+            print(f"{set_n} Accuracy:{acc:.2f}")
+
+            # get top k
+            plot_top_k(all_logits, support_paths, set_name=fig_n, k=10)
+
         print(f"{set_n} finished")
 
 

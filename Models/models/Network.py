@@ -18,6 +18,8 @@ class DeepEMD(nn.Module):
         if self.mode == 'pre_train':
             self.fc = nn.Linear(640, self.args.num_class)
 
+        self.device = args.device
+
     def forward(self, input):
         if self.mode == 'meta':
             support, query = input
@@ -110,7 +112,10 @@ class DeepEMD(nn.Module):
                 for j in range(num_proto):
                     _, flow = emd_inference_opencv(1 - similarity_map[i, j, :, :], weight_1[i, j, :], weight_2[j, i, :])
 
-                    similarity_map[i, j, :, :] =(similarity_map[i, j, :, :])*torch.from_numpy(flow).cuda()
+                    if self.device == "cuda":
+                        similarity_map[i, j, :, :] =(similarity_map[i, j, :, :])*torch.from_numpy(flow).cuda()
+                    else:
+                        similarity_map[i, j, :, :] =(similarity_map[i, j, :, :])*torch.from_numpy(flow)
 
             temperature=(self.args.temperature/num_node)
             logitis = similarity_map.sum(-1).sum(-1) *  temperature
