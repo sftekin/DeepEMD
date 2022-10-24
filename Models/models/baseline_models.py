@@ -18,6 +18,7 @@ class BaseLineModel(nn.Module):
 
         self.encoder = ResNet(args)
         self.epsilon = 1e-8
+        self.device = args.device
 
     def forward(self, input):
         pass
@@ -131,7 +132,10 @@ class Matching(BaseLineModel):
         y = self.create_nshot_task_label(self.k, self.n).unsqueeze(-1)
         y_onehot = y_onehot.scatter(1, y, 1)
 
-        y_pred = torch.mm(attention, y_onehot.cuda().float())
+        if self.device == "cuda":
+            y_onehot = y_onehot.cuda()
+
+        y_pred = torch.mm(attention, y_onehot.float())
 
         return y_pred
 

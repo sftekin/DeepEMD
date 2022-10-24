@@ -35,9 +35,9 @@ def main(args):
     # model
     args.pretrain_dir = osp.join(args.pretrain_dir, '%s/resnet12/max_acc.pth' % (args.dataset))
     model = model_dispatcher[args.model_name](args)
-    model = load_model(model, args.pretrain_dir)
+    model = load_model(model, args.pretrain_dir, mode="cpu")
     model = nn.DataParallel(model, list(range(num_gpu)))
-    model = model.cuda()
+    # model = model.cuda()
     model.eval()
 
     # create save_path for the checkpoints
@@ -63,7 +63,7 @@ def main(args):
     # label for query set, always in the same pattern
     label = torch.arange(args.way, dtype=torch.int8).repeat(args.query)  # 012340123401234...
     label = label.type(torch.LongTensor)
-    label = label.cuda()
+    # label = label.cuda()
 
     optimizer = torch.optim.SGD([{'params': model.parameters(), 'lr': args.lr}], momentum=0.9, nesterov=True,
                                 weight_decay=0.0005)
@@ -98,7 +98,7 @@ def main(args):
         for i, batch in enumerate(tqdm_gen, 1):
 
             path_batch, data_batch, label_batch = batch
-            data, label_batch = data_batch.cuda(), label_batch.cuda()
+            data, label_batch = data_batch.cpu(), label_batch.cpu()
 
             global_count = global_count + 1
             # data, _ = [_.cuda() for _ in batch]
@@ -241,7 +241,7 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser()
 
     # My additional arguments
-    parser.add_argument('-model_name', type=str, default="Prototype", choices=['DeepEMD', 'Prototype', 'Matching'])
+    parser.add_argument('-model_name', type=str, default="Matching", choices=['DeepEMD', 'Prototype', 'Matching'])
 
     # about dataset and training
     parser.add_argument('-dataset', type=str, default='miniimagenet',

@@ -17,11 +17,12 @@ import pickle as pkl
 import torch
 from torchvision import transforms
 from PIL import Image
+import torch.nn.functional as F
 
 from Models.models.Network import DeepEMD
 from Models.models.baseline_models import Prototype, Matching
 from Models.utils import ensure_path, load_model
-from plotting import plot_support_set, plot_query_set
+from plotting import plot_support_set, plot_query_set, plot_top_k
 
 DATA_DIR = 'datasets/miniimagenet'
 SAVE_DIR = "outputs"
@@ -42,18 +43,19 @@ model_dir_dispatcher = {
 def main(args):
     model_name = args.model_name
     set_names = ["train", "val", "test"]
-    num_class, num_samples = 5, 5
+    num_class, num_samples = args.way, args.query * args.way
     save_path = osp.join(SAVE_DIR, "inference")
 
     # load model
-    model = model_dispatcher[args.model_name](args)
-    model_dir = model_dir_dispatcher[args.model_name]
+    model = model_dispatcher[model_name](args)
+    model_dir = model_dir_dispatcher[model_name]
     model = load_model(model, model_dir, mode="cpu")
     model = model.cpu()
     model.eval()
 
     for set_n in set_names:
         set_path = osp.join(DATA_DIR, "split", f"{set_n}.csv")
+        fig_n = f"{set_n}_{model_name}"
         ds_df = pd.read_csv(set_path)
 
         # select labels
@@ -90,19 +92,44 @@ def main(args):
             support_paths.append(im_paths)
             query_paths.append(query_path)
         support_data = torch.stack(support_data, dim=0)
-        query_data = torch.stack(query_data, dim=0)
-        support_paths = np.array(support_paths).T
+        query_data = torch.cat(query_data, dim=0)
+        support_paths = np.array(support_paths)
         query_paths = np.array(query_paths)
+
+        # transpose data
+        support_data = torch.transpose(support_data, 0, 1)
+        support_paths = support_paths.T
 
         # plot query and support data
         label_names = list(support_set.keys())
-        plot_support_set(support_paths, label_names, set_name=set_n)
-        plot_query_set(query_paths, label_names, set_name=set_n)
+        plot_support_set(support_paths, label_names, set_name=fig_n)
+        plot_query_set(query_paths, label_names, set_name=fig_n)
 
-        print()
         # perform inference
+        k = args.way * args.shot
+        all_preds, all_logits = [], []
+        for i in range(num_samples):
+            data = torch.cat([support_data[i], query_data], dim=0)
+            model.mode = 'encoder'
+            data = model(data)
+            data_shot, data_query = data[:k], data[k:]
+            model.mode = 'meta'
+            logits = model((data_shot, data_query))
+            pred = torch.argmax(logits, dim=1)
+            all_preds.append(pred.numpy())
+            all_logits.append(logits.detach().numpy())
+        all_preds = np.concatenate(all_preds, axis=0)
+        all_logits = np.concatenate(all_logits, axis=1)
 
+        # evaluate
+        labels = np.tile(np.arange(args.way), args.query * args.way)
+        errors = all_preds == labels
+        acc = errors.astype(int).mean() * 100
+        print(f"{set_n} Accuracy:{acc:.2f}")
 
+        # get top k
+        plot_top_k(all_logits, support_paths, set_name=fig_n, k=10)
+        print(f"{set_n} finished")
 
 
 def load_image(batch_path):
@@ -128,11 +155,12 @@ if __name__ == '__main__':
 
     # My additional arguments
     parser.add_argument('-model_name', type=str, default="Matching", choices=['DeepEMD', 'Prototype', 'Matching'])
+    parser.add_argument('-device', type=str, default="cpu", choices=["cpu", "cuda"])
 
     # about task
     parser.add_argument('-way', type=int, default=5)
     parser.add_argument('-shot', type=int, default=1)
-    parser.add_argument('-query', type=int, default=15, help='number of query image per class')
+    parser.add_argument('-query', type=int, default=1, help='number of query image per class')
 
     # about model
     parser.add_argument('-temperature', type=float, default=12.5)

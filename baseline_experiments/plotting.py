@@ -3,6 +3,7 @@ from PIL import Image
 from collecting_negatives.label_names import label_names
 import matplotlib.pyplot as plt
 from Models.utils import ensure_path
+import numpy as np
 
 figures_dir = osp.join("outputs", "figures")
 ensure_path(figures_dir)
@@ -75,3 +76,24 @@ def plot_query_set(query_paths, labels_str, set_name="train"):
         ax[i].set_yticks([])
     fig_path = osp.join(figures_dir, f"{set_name}_query.png")
     plt.savefig(fig_path, dpi=200, bbox_inches="tight")
+
+
+def plot_top_k(logits, paths, k=10, set_name="train"):
+    sorted_idx = np.argsort(logits, axis=1)[:, ::-1]
+    paths = paths.flatten()
+
+    num_query = sorted_idx.shape[0]
+    fig, ax = plt.subplots(k, num_query, figsize=(15, 15))
+    for i in range(num_query):
+        im_logits = logits[i, sorted_idx[i, :k]]
+        im_paths = paths[sorted_idx[i, :k]]
+        for j in range(k):
+            ax[j, i].imshow(Image.open(im_paths[j]).convert("RGB"))
+            ax[j, i].set_title(f"{im_logits[j]:.4f}")
+            ax[j, i].set_xticks([])
+            ax[j, i].set_yticks([])
+
+    fig_path = osp.join(figures_dir, f"{set_name}_top{k}.png")
+    plt.savefig(fig_path, dpi=200, bbox_inches="tight")
+
+
