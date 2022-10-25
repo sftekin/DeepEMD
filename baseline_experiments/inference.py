@@ -61,7 +61,7 @@ def main(args):
         query_set = {}
         for label in label_list:
             samples = data_filtered.loc[data_filtered["label"] == label, ["filename"]]
-            rand_sample_ints = np.random.randint(len(samples), size=num_samples + 1)
+            rand_sample_ints = np.random.choice(range(len(samples)), num_class + 1, replace=False)
             support_ids, query_id = rand_sample_ints[:num_class], rand_sample_ints[-1]
             support_set[label] = samples["filename"].iloc[support_ids].values.tolist()
             query_set[label] = samples["filename"].iloc[query_id]
@@ -146,7 +146,7 @@ def main(args):
         episode_errors = [easy_episodes, hard_episodes, avg_episodes]
         for ep_er, ep_name in zip(episode_errors, episode_names):
             if any(ep_er):
-                plot_episodes(support_paths, query_paths, ep_er, ep_name, model_logits, set_name=set_n)
+                plot_episodes(support_paths, query_paths, ep_er, ep_name, model_logits, label_names, set_name=set_n)
             else:
                 print(f"Skipping {set_n} {ep_name}")
 

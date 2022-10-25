@@ -1,12 +1,15 @@
 import os.path as osp
 from PIL import Image
-from collecting_negatives.label_names import label_names
 import matplotlib.pyplot as plt
 from Models.utils import ensure_path
 import numpy as np
+import json
 
 figures_dir = osp.join("outputs", "figures")
 ensure_path(figures_dir)
+
+with open("imagenet_id_to_label.json", "r") as f:
+    id2label = json.loads(f.read())
 
 
 def plot_comparison(batch_idx, batch_path, model1_logits, model2_logits, query_ind):
@@ -61,7 +64,7 @@ def plot_support_set(support_paths, labels_str, set_name="train"):
             ax[i, j].set_xticks([])
             ax[i, j].set_yticks([])
             if i == 0:
-                ax[i, j].set_title(labels_str[j])
+                ax[i, j].set_title(id2label[labels_str[j]])
     fig_path = osp.join(figures_dir, f"{set_name}_support.png")
     plt.savefig(fig_path, dpi=200, bbox_inches="tight")
 
@@ -71,7 +74,7 @@ def plot_query_set(query_paths, labels_str, set_name="train"):
     for i in range(len(query_paths)):
         im = Image.open(query_paths[i]).convert("RGB")
         ax[i].imshow(im)
-        ax[i].set_title(labels_str[i])
+        ax[i].set_title(id2label[labels_str[i]])
         ax[i].set_xticks([])
         ax[i].set_yticks([])
     fig_path = osp.join(figures_dir, f"{set_name}_query.png")
@@ -97,7 +100,7 @@ def plot_top_k(logits, paths, k=10, set_name="train"):
     plt.savefig(fig_path, dpi=200, bbox_inches="tight")
 
 
-def plot_episodes(support_paths, query_paths, ep_er, ep_name, logits, set_name="train"):
+def plot_episodes(support_paths, query_paths, ep_er, ep_name, logits, label_names, set_name="train"):
     ep_dir = osp.join(figures_dir, f"{set_name}_{ep_name}_episodes")
     ensure_path(ep_dir)
 
@@ -110,7 +113,7 @@ def plot_episodes(support_paths, query_paths, ep_er, ep_name, logits, set_name="
         query_path = query_paths[query_idx]
         sup_paths = support_paths[sup_idx]
         ax[0].imshow(Image.open(query_path).convert("RGB"))
-        ax[0].set_title(f"Query")
+        ax[0].set_title(f"QUERY\n{id2label[label_names[query_idx]]}")
         ax[0].set_xticks([])
         ax[0].set_yticks([])
 
