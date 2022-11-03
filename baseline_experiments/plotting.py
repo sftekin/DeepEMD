@@ -104,31 +104,34 @@ def plot_episodes(support_paths, query_paths, ep_er, ep_name, logits, label_name
     ep_dir = osp.join(figures_dir, f"{set_name}_{ep_name}_episodes")
     ensure_path(ep_dir)
 
-    counter = 0
     way_count = support_paths.shape[1]
     support_ids = np.where(ep_er)[0] // way_count
     query_ids = np.where(ep_er)[0] % way_count
+    counter = 0
     fig, ax = plt.subplots(1, way_count + 1, figsize=(12, 12))
     for sup_idx, query_idx in zip(support_ids, query_ids):
         query_path = query_paths[query_idx]
         sup_paths = support_paths[sup_idx]
+
+        # first plot the query
         ax[0].imshow(Image.open(query_path).convert("RGB"))
         ax[0].set_title(f"QUERY\n{id2label[label_names[query_idx]]}")
         ax[0].set_xticks([])
         ax[0].set_yticks([])
 
-        title_set = []
         for model_name, logit_arr in logits.items():
-            logit_set = logit_arr[query_idx, sup_idx*way_count:]
-            title_set.append([f"{model_name}:{l:.3f}" for l in logit_set])
+            logit_set = logit_arr[query_idx, sup_idx*way_count:sup_idx*way_count + way_count]
+            title_set = [f"{id2label[label_names[l]]}:{logit_set[l]:.3f}" for l in range(len(logit_set))]
+            sorted_idx = np.argsort(logit_set)[::-1]
 
-        for j, path in enumerate(sup_paths):
-            title_str = '\n'.join([t_set[j] for t_set in title_set])
-            ax[j+1].imshow(Image.open(path).convert("RGB"))
-            ax[j+1].set_title(title_str, fontsize=8)
-            ax[j+1].set_xticks([])
-            ax[j+1].set_yticks([])
+            # then plot the supports sorted according to logits
+            for j in range(way_count):
+                idx = sorted_idx[j]
+                ax[j+1].imshow(Image.open(sup_paths[idx]).convert("RGB"))
+                ax[j+1].set_title(title_set[idx], fontsize=11)
+                ax[j+1].set_xticks([])
+                ax[j+1].set_yticks([])
 
-        fig_path = osp.join(ep_dir, f"{counter}.png")
-        plt.savefig(fig_path, dpi=200, bbox_inches="tight")
+            fig_path = osp.join(ep_dir, f"{model_name}_{counter}.png")
+            plt.savefig(fig_path, dpi=200, bbox_inches="tight")
         counter += 1

@@ -93,7 +93,7 @@ class Prototype(BaseLineModel):
 class Matching(BaseLineModel):
     def __init__(self, args, mode="meta") -> None:
         super().__init__(args, mode)
-    
+
     def forward(self, input, **kwargs):
         if self.mode == "encoder":
             return nn.Flatten()(self.encoder(input))
@@ -171,4 +171,16 @@ class Finetune(BaseLineModel):
             return nn.Flatten()(self.encoder(input))
         elif self.mode == "meta":
             support, queries = input
-            
+
+
+class MAML(BaseLineModel):
+    def __init__(self, args, mode="meta"):
+        super(MAML, self).__init__(args, mode)
+
+
+    def forward(self, input):
+        if self.mode == "encoder":
+            pass
+        data_shape = input.shape
+
+
